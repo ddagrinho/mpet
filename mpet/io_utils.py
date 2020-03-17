@@ -110,14 +110,21 @@ def get_dicts_from_configs(P_s, P_e):
         "c": P_s.getboolean('Conductivity', 'simBulkCond_c')}
     dD_s["sigma_s"] = {"a": P_s.getfloat('Conductivity', 'sigma_s_a'),
                        "c": P_s.getfloat('Conductivity', 'sigma_s_c')}
-    ndD_s["simPartCond"] = {
-        "a": P_s.getboolean('Conductivity', 'simPartCond_a'),
-        "c": P_s.getboolean('Conductivity', 'simPartCond_c')}
-    dD_s["G_mean"] = {"a": P_s.getfloat('Conductivity', 'G_mean_a'),
-                      "c": P_s.getfloat('Conductivity', 'G_mean_c')}
-    dD_s["G_stddev"] = {"a": P_s.getfloat('Conductivity', 'G_stddev_a'),
-                        "c": P_s.getfloat('Conductivity', 'G_stddev_c')}
-
+    ndD_s["simPartCondSeries"] = {
+        "a": P_s.getboolean('Conductivity', 'simPartCondSeries_a'),
+        "c": P_s.getboolean('Conductivity', 'simPartCondSeries_c')}
+    dD_s["G_series_mean"] = {"a": P_s.getfloat('Conductivity', 'G_series_mean_a'),
+                      "c": P_s.getfloat('Conductivity', 'G_series_mean_c')}
+    dD_s["G_series_stddev"] = {"a": P_s.getfloat('Conductivity', 'G_series_stddev_a'),
+                        "c": P_s.getfloat('Conductivity', 'G_series_stddev_c')}
+    ndD_s["simPartCondParallel"] = {
+        "a": P_s.getboolean('Conductivity', 'simPartCondParallel_a'),
+        "c": P_s.getboolean('Conductivity', 'simPartCondParallel_c')}
+    dD_s["G_parallel_mean"] = {"a": P_s.getfloat('Conductivity', 'G_parallel_mean_a'),
+                      "c": P_s.getfloat('Conductivity', 'G_parallel_mean_c')}
+    dD_s["G_parallel_stddev"] = {"a": P_s.getfloat('Conductivity', 'G_parallel_stddev_a'),
+                        "c": P_s.getfloat('Conductivity', 'G_parallel_stddev_c')}
+ 
     # Geometry
     dD_s["L"] = {"a": P_s.getfloat('Geometry', 'L_a'),
                  "c": P_s.getfloat('Geometry', 'L_c'),
@@ -201,7 +208,7 @@ def get_dicts_from_configs(P_s, P_e):
         test_electrode_input(dD_e[trode], ndD_e[trode], dD_s, ndD_s)
     psd_raw, psd_num, psd_len, psd_area, psd_vol = distr_part(
         dD_s, ndD_s, dD_e, ndD_e)
-    G = distr_G(dD_s, ndD_s)
+    G_series, G_parallel = distr_G(dD_s, ndD_s)
 
     # Various calculated and defined parameters
     L_ref = dD_s["L_ref"] = dD_s["Lref"] = dD_s["L"]["c"]
@@ -255,8 +262,10 @@ def get_dicts_from_configs(P_s, P_e):
     dD_s["psd_len"] = {}
     dD_s["psd_area"] = {}
     dD_s["psd_vol"] = {}
-    dD_s["G"] = {}
-    ndD_s["G"] = {}
+    dD_s["G_s"] = {}
+    dD_s["G_p"] = {}
+    ndD_s["G_s"] = {}
+    ndD_s["G_p"] = {}
     ndD_s["psd_vol_FracVol"] = {}
     ndD_s["L"] = {}
     ndD_s["L"]["s"] = dD_s["L"]["s"] / L_ref
@@ -272,7 +281,8 @@ def get_dicts_from_configs(P_s, P_e):
             dD_s["psd_len"][trode] = psd_len[trode]
             dD_s["psd_area"][trode] = psd_area[trode]
             dD_s["psd_vol"][trode] = psd_vol[trode]
-            dD_s["G"][trode] = G[trode]
+            dD_s["G_s"][trode] = G_series[trode]
+            dD_s["G_p"][trode] = G_parallel[trode]
         else:
             dD_sPrev, ndD_sPrev = read_dicts(
                 os.path.join(ndD_s["prevDir"], "input_dict_system"))
@@ -281,7 +291,8 @@ def get_dicts_from_configs(P_s, P_e):
             dD_s["psd_len"][trode] = dD_sPrev["psd_len"][trode]
             dD_s["psd_area"][trode] = dD_sPrev["psd_area"][trode]
             dD_s["psd_vol"][trode] = dD_sPrev["psd_vol"][trode]
-            dD_s["G"][trode] = dD_sPrev["G"][trode]
+            dD_s["G_s"][trode] = dD_sPrev["G_s"][trode]
+            dD_s["G_p"][trode] = dD_sPrev["G_p"][trode]
         # Sums of all particle volumes within each simulated
         # electrode volume
         Vuvec = np.sum(dD_s["psd_vol"][trode], axis=1)
@@ -294,9 +305,13 @@ def get_dicts_from_configs(P_s, P_e):
         ndD_s["beta"][trode] = dD_e[trode]["csmax"]/c_ref
         ndD_s["sigma_s"][trode] = dD_s['sigma_s'][trode] / dD_s["sigma_s_ref"]
         vols = dD_s["psd_vol"][trode]
-        ndD_s["G"][trode] = (
-            dD_s["G"][trode] * (k*T_ref/e) * t_ref
+        ndD_s["G_s"][trode] = (
+            dD_s["G_s"][trode] * (k*T_ref/e) * t_ref
             / (F*dD_e[trode]["csmax"]*vols))
+        ndD_s["G_p"][trode] = (
+            dD_s["G_p"][trode] * (k*T_ref/e) * t_ref
+            / (F*dD_e[trode]["csmax"]*vols))
+
 
         # Electrode particle parameters
         ndD_e[trode]["lambda"] = dD_e[trode]["lambda"]/(k*T_ref)
@@ -468,20 +483,30 @@ def distr_part(dD_s, ndD_s, dD_e, ndD_e):
 
 
 def distr_G(dD, ndD):
-    G = {}
+    G_series = {}
+    G_parallel = {}
     for trode in ndD["trodes"]:
         Nv = ndD["Nvol"][trode]
         Np = ndD["Npart"][trode]
-        mean = dD["G_mean"][trode]
-        stddev = dD["G_stddev"][trode]
-        if are_close(stddev, 0.):
-            G[trode] = mean * np.ones((Nv, Np))
+        mean_s = dD["G_series_mean"][trode]
+        mean_p = dD["G_parallel_mean"][trode]
+        stddev_s = dD["G_series_stddev"][trode]
+        stddev_p = dD["G_parallel_stddev"][trode]
+        if are_close(stddev_s, 0.):
+            G_series[trode] = mean_s * np.ones((Nv, Np))
         else:
-            var = stddev**2
-            mu = np.log((mean**2)/np.sqrt(var+mean**2))
-            sigma = np.sqrt(np.log(var/(mean**2)+1))
-            G[trode] = np.random.lognormal(mu, sigma, size=(Nv, Np))
-    return G
+            var_s = stddev_s**2
+            mu_s = np.log((mean_s**2)/np.sqrt(var_s+mean_s**2))
+            sigma_s = np.sqrt(np.log(var_s/(mean_s**2)+1))
+            G_series[trode] = np.random.lognormal(mu_s, sigma_s, size=(Nv, Np))
+        if are_close(stddev_p, 0.):
+            G_parallel[trode] = mean_p * np.ones((Nv, Np))
+        else:
+            var_p = stddev_p**2
+            mu_p = np.log((mean_p**2)/np.sqrt(var_p+mean_p**2))
+            sigma_p = np.sqrt(np.log(var_p/(mean_p**2)+1))
+            G_parallel[trode] = np.random.lognormal(mu_p, sigma_p, size=(Nv, Np))
+    return G_series, G_parallel
 
 
 def size2regsln(size):
