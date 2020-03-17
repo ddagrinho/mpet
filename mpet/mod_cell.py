@@ -256,14 +256,20 @@ class ModCell(dae.daeModel):
 
             # Simulate the potential drop along the connected
             # particles
-            simPartCond = ndD['simPartCond'][trode]
+            simPartCondSeries = ndD['simPartCondSeries'][trode]
+            simPartCondParallel = ndD['simPartCondParallel'][trode]
             for vInd in range(Nvol[trode]):
                 phi_bulk = self.phi_bulk[trode](vInd)
                 for pInd in range(Npart[trode]):
-                    G_l = ndD["G"][trode][vInd,pInd]
+                    G_l = ndD["G_s"][trode][vInd,pInd]
+                    G_p = ndD["G_p"][trode][vInd,pInd] #parallel conductance
                     phi_n = self.phi_part[trode](vInd, pInd)
                     if pInd == 0:  # reference bulk phi
                         phi_l = phi_bulk
+                        if simPartCondSeries and simPartCondParallel:
+                            G_p = 0
+                            #avoid double counting the first term if both series
+                            #and parallel are turned on
                     else:
                         phi_l = self.phi_part[trode](vInd, pInd-1)
                     if pInd == (Npart[trode] - 1):  # No particle at end of "chain"
@@ -276,12 +282,28 @@ class ModCell(dae.daeModel):
                     eq = self.CreateEquation(
                         "phi_ac_trode{trode}vol{vInd}part{pInd}".format(
                             vInd=vInd, trode=trode, pInd=pInd))
-                    if simPartCond:
+                    if simPartCondSeries and simPartCondParallel:
                         # -dcsbar/dt = I_l - I_r
+                        #if both parallel and series conductivity are turned on
                         eq.Residual = (
                             self.particles[trode][vInd,pInd].dcbardt()
-                            + ((-G_l * (phi_n - phi_l))
+                            #parallel conductance term
+                               + ((-G_p * (phi_n - phi_bulk)))
+                               #series conducvitiy term, check MPET paper
+                               + ((-G_l * (phi_n - phi_l))
                                - (-G_r * (phi_r - phi_n))))
+                    elif simPartCondSeries:
+                        #if only series conducitvity is turned on
+                        eq.Residual = (
+                             self.particles[trode][vInd,pInd].dcbardt()
+                               + ((-G_l * (phi_n - phi_l))
+                               - (-G_r * (phi_r - phi_n))))                       
+                    elif simPartCondParallel:
+                        #if only parallel conductivity is turned on
+                        eq.Residual = (          
+                            self.particles[trode][vInd,pInd].dcbardt()
+                            #parallel conductance
+                               + ((-G_p * (phi_n - phi_bulk))))
                     else:
                         eq.Residual = self.phi_part[trode](vInd, pInd) - phi_bulk
 
