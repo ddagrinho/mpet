@@ -276,7 +276,7 @@ class ModCell(dae.daeModel):
                         G_r = 0
                         phi_r = phi_n
                     else:
-                        G_r = ndD["G"][trode][vInd,pInd+1]
+                        G_r = ndD["G_s"][trode][vInd,pInd+1]
                         phi_r = self.phi_part[trode](vInd, pInd+1)
                     # charge conservation equation around this particle
                     eq = self.CreateEquation(
