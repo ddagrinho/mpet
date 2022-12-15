@@ -254,19 +254,58 @@ class SimMPET(dae.daeSimulation):
         terminates when the specified condition is satisfied.
         """
         tScale = self.tScale
+
+        # get pulse data
+        pulseStart, pulseEnd = utils.pulse_segments(self)
+
+        oldTime = 0
+
+        # save data every N steps
+        N = 250
+
         for nextTime in self.ReportingTimes:
 
+            nextPulseStart, nextPulseEnd = utils.next_pulse(
+                pulseStart, pulseEnd, oldTime, nextTime)
+
+            for j in range(len(nextPulseStart)):
+                self.Reinitialize()
+                time = self.IntegrateUntilTime(
+                    nextPulseStart[j], dae.eStopAtModelDiscontinuity, True)
+                self.ReportData(self.CurrentTime)
+                self.Log.SetProgress(int(100. * self.CurrentTime/self.TimeHorizon))
+                progressStr = "{0} {1}".format(self.Log.PercentageDone,self.Log.ETA)
+                message = "Integrating from {t0:.2f} to {t1:.2f} s ...".format(
+                    t0=self.CurrentTime*tScale, t1=nextPulseStart[j]*tScale)
+                sys.stdout.write(f"\r{progressStr[:-1]} {message}")
+                sys.stdout.flush()
+
+                N_counter = 0
+
+                while time < nextPulseEnd[j]:
+                    self.Reinitialize()
+                    time = self.IntegrateForOneStep(dae.eStopAtModelDiscontinuity, True)
+                    if not np.mod(N_counter, N):
+                        self.ReportData(self.CurrentTime)
+                        message = "Integrating one step to {t0:.2f} s ...".format(
+                            t0=self.CurrentTime*tScale)
+                        progressStr = "{0} {1}".format(self.Log.PercentageDone,self.Log.ETA)
+                        sys.stdout.write(f"\r{progressStr[:-1]} {message}")
+                        sys.stdout.flush()
+                    self.Log.SetProgress(int(100. * self.CurrentTime/self.TimeHorizon))
+                    N_counter += 1
+
+            # Integrate the equations
+            self.Reinitialize()
+            self.IntegrateUntilTime(nextTime, dae.eStopAtModelDiscontinuity, True)
+            self.ReportData(self.CurrentTime)
+            self.Log.SetProgress(int(100. * self.CurrentTime/self.TimeHorizon))
             # Print logging information
             progressStr = "{0} {1}".format(self.Log.PercentageDone,self.Log.ETA)
             message = "Integrating from {t0:.2f} to {t1:.2f} s ...".format(
                 t0=self.CurrentTime*tScale, t1=nextTime*tScale)
             sys.stdout.write(f"\r{progressStr[:-1]} {message}")
             sys.stdout.flush()
-
-            # Integrate the equations
-            self.IntegrateUntilTime(nextTime, dae.eStopAtModelDiscontinuity, True)
-            self.ReportData(self.CurrentTime)
-            self.Log.SetProgress(int(100. * self.CurrentTime/self.TimeHorizon))
 
             # Break when an end condition has been met
             if self.m.endCondition.npyValues:

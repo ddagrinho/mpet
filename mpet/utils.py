@@ -200,3 +200,31 @@ def import_function(filename, function, mpet_module=None):
     callable_function = getattr(module, function)
 
     return callable_function
+
+
+def pulse_segments(self):
+    """Get pusle segment times in the integration variables. Returns the segments of pulse
+    starts and pulse ends. It assumes that the pulses are short and contained within the same
+    timestep"""
+    time = 0
+    pulseStart = []
+    pulseEnd = []
+    for k in range(len(self.config["segments"])):
+        # add all the segment times
+        # if we are doing a voltage pulse
+        if self.config["segments"][k][-1] == 2 or self.config["segments"][k][-1] == 5:
+            pulseStart.append(time)
+            # do a multiple so we can get some relaxation time too
+            pulseEnd.append(time + self.config["segments"][k][4])
+        time = time + self.config["segments"][k][4]  # add the time
+    return pulseStart, pulseEnd
+
+
+def next_pulse(pulseStart, pulseEnd, oldTime, nextTime):
+    """Returns the pulse start and end times in the next time segment"""
+    pulseStart = np.array(pulseStart)
+    pulseEnd = np.array(pulseEnd)
+    inds = np.logical_and(pulseStart < nextTime, pulseStart > oldTime)
+    nextPulseStart = pulseStart[inds]
+    nextPulseEnd = pulseEnd[inds]
+    return nextPulseStart, nextPulseEnd

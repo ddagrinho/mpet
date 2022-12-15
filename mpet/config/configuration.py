@@ -657,7 +657,7 @@ class Config:
                                          crate_cut, time_cut, self["segments"][i][5]))
                     # elif just incrementing step
                     elif self["segments"][i][5] == 0:
-                        segments.append((0, None, None, None, None, 0))
+                        segments.append((0, None, None, None, 0, 0))
 
         # Current or voltage segments profiles
         segments_tvec = np.zeros(2 * self['numsegments'] + 1)
