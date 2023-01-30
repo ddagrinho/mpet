@@ -304,9 +304,7 @@ class Mod1var(dae.daeModel):
                                  "Concentration in active particle",
                                  [self.Dmn])
 
-        self.eta = dae.daeVariable("eta", dae.no_t, self,
-                                   "Overpotential",
-                                   [self.Dmn])
+        
 
         # Creation of the ghost points to assit BC
 
@@ -324,6 +322,7 @@ class Mod1var(dae.daeModel):
             self.Rxn = dae.daeVariable("Rxn", dae.no_t, self, "Rate of reaction")
         else:
             self.Rxn = dae.daeVariable("Rxn", dae.no_t, self, "Rate of reaction", [self.Dmn])
+            self.eta = dae.daeVariable("eta", dae.no_t, self, "Overpotential", [self.Dmn])
 
         # Get reaction rate function
         rxnType = config[trode, "rxnType"]
