@@ -5,6 +5,7 @@ import matplotlib.animation as manim
 import matplotlib.collections as mcollect
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.patches as mpatches
 
 import mpet.geometry as geom
 import mpet.mod_cell as mod_cell
@@ -774,8 +775,10 @@ def show_data(indir, plot_type, print_flag, save_flag, data_only, vOut=None, pOu
                 size = sizes[vInd,pInd]
                 center = np.array([spacing*(vInd + 0.5), spacing*(pInd + 0.5)])
                 bottom_left = center - size / 2
-                rects[vInd,pInd] = plt.Rectangle(
-                    bottom_left, size, size, color=color)
+                #rects[vInd,pInd] = plt.Rectangle(
+                    #bottom_left, size, size, color=color)
+                rects[vInd,pInd] = mpatches.RegularPolygon(
+                    center, 6, size/3, color=color)
                 # rects[vInd,pInd] = plt.Circle(
                 #     center, radius=size/4, color=color)
             # Create a group of rectange "patches" from the rects array
